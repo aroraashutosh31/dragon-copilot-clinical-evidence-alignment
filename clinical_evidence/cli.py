@@ -93,6 +93,17 @@ def _load_record(path: str) -> dict[str, Any]:
     return data
 
 
+def _publish_event(
+    handler: SendToExtensionsHandler,
+    data: dict[str, Any],
+    context_data: dict[str, Any],
+) -> tuple[str, Any]:
+    """Replay a "send to extensions" event through the shared handler."""
+
+    response = handler.handle({**data, "context": context_data})
+    return response["published_to"], response["http_status"]
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
 
@@ -129,16 +140,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print(summary.render_text())
 
-    if args.publish or data.get("action") == SEND_TO_EXTENSIONS_ACTION:
+    is_event = data.get("action") == SEND_TO_EXTENSIONS_ACTION
+    if is_event or args.publish:
         try:
-            handler = SendToExtensionsHandler(extension, default_url=args.publish_url)
-            url = handler.resolve_url(data.get("app_url"))
-            result = EvidencePublisher(url).publish(summary)
+            if is_event:
+                handler = SendToExtensionsHandler(extension, default_url=args.publish_url)
+                published_to, status = _publish_event(handler, data, context_data)
+            else:
+                published_to = args.publish_url
+                status = EvidencePublisher(published_to).publish(summary).get("http_status")
         except (PublishError, ValueError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1
         print(
-            f"Published evidence summary to {url} (HTTP {result.get('http_status')})",
+            f"Published evidence summary to {published_to} (HTTP {status})",
             file=sys.stderr,
         )
     return 0

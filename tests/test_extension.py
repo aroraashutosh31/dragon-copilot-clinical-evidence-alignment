@@ -172,10 +172,10 @@ def test_cli_publishes_automatically_for_send_to_extensions_events(monkeypatch, 
             published["url"] = url
 
         def publish(self, summary):
-            published["patient_id"] = summary.patient_id
+            published["patient_id"] = summary["patient_id"]
             return {"http_status": 202, "body": {}}
 
-    monkeypatch.setattr("clinical_evidence.cli.EvidencePublisher", FakePublisher)
+    monkeypatch.setattr("clinical_evidence.trigger.EvidencePublisher", FakePublisher)
     assert main([str(EVENT)]) == 0
     assert published["url"] == DEFAULT_PUBLISH_URL
     assert published["patient_id"] == "demo-1042"

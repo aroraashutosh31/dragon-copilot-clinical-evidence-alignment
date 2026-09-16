@@ -118,3 +118,16 @@ def test_handler_honours_extension_limits(event):
 def test_module_level_helper_delegates_to_a_handler(event, handler):
     assert handle_send_to_extensions(event, handler=handler)["http_status"] == 202
     assert _RecordingPublisher.calls[0][0] == DEFAULT_PUBLISH_URL
+
+
+def test_missing_action_is_refused(handler, event):
+    event.pop("action")
+    with pytest.raises(ValueError, match="must declare 'action'"):
+        handler.handle(event)
+    assert _RecordingPublisher.calls == []
+
+
+def test_app_url_without_a_host_is_refused(handler, event):
+    event["app_url"] = "https:///app/asharora-hathct"
+    with pytest.raises(ValueError, match="no host"):
+        handler.handle(event)

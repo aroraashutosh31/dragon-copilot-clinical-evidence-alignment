@@ -52,9 +52,11 @@ class SendToExtensionsHandler:
         extension: ClinicalEvidenceExtension | None = None,
         *,
         default_url: str = DEFAULT_PUBLISH_URL,
-        publisher_factory: Any = EvidencePublisher,
+        publisher_factory: Any = None,
         allowed_hosts: frozenset[str] = ALLOWED_PUBLISH_HOSTS,
     ) -> None:
+        """``publisher_factory`` defaults to :class:`EvidencePublisher`."""
+
         self.extension = extension or ClinicalEvidenceExtension()
         self.default_url = default_url
         self.publisher_factory = publisher_factory
@@ -63,11 +65,16 @@ class SendToExtensionsHandler:
     def handle(self, event: Mapping[str, Any]) -> dict[str, Any]:
         """Validate ``event``, publish the summary and return the outcome.
 
+        The event must declare its ``action`` explicitly; patient data is never
+        transmitted on the basis of an assumed action.
+
         Raises ``ValueError`` for a malformed event or an untrusted ``app_url``
         and ``PublishError`` when the review application cannot be reached.
         """
 
-        action = event.get("action", SEND_TO_EXTENSIONS_ACTION)
+        if "action" not in event:
+            raise ValueError(f"Event must declare 'action': {SEND_TO_EXTENSIONS_ACTION!r}")
+        action = event["action"]
         if action != SEND_TO_EXTENSIONS_ACTION:
             raise ValueError(
                 f"Unsupported action {action!r}, expected {SEND_TO_EXTENSIONS_ACTION!r}"
@@ -75,7 +82,8 @@ class SendToExtensionsHandler:
 
         url = self.resolve_url(event.get("app_url"))
         summary = self.extension.handle_request(event)
-        result = self.publisher_factory(url).publish(summary)
+        factory = self.publisher_factory or EvidencePublisher
+        result = factory(url).publish(summary)
 
         response: dict[str, Any] = {
             "action": SEND_TO_EXTENSIONS_ACTION,
@@ -96,8 +104,12 @@ class SendToExtensionsHandler:
         if not isinstance(app_url, str):
             raise ValueError("'app_url' must be a string when provided")
         host = urllib.parse.urlparse(app_url).hostname
+        if not host:
+            raise ValueError(f"'app_url' has no host: {app_url!r}")
         if host not in self.allowed_hosts:
-            raise ValueError(f"Refusing to publish patient evidence to untrusted host: {host}")
+            raise ValueError(
+                f"Refusing to publish patient evidence to untrusted host {host!r}: {app_url}"
+            )
         return app_url
 
 
