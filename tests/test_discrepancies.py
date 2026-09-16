@@ -175,3 +175,25 @@ def test_results_are_sorted_by_severity_and_limited():
     results = detect_discrepancies(record, ClinicalContext(as_of=date(2025, 2, 3)))
     assert [item.severity for item in results] == ["high", "medium"]
     assert len(detect_discrepancies(record, ClinicalContext(), limit=1)) == 1
+
+
+def test_later_study_of_a_different_body_site_does_not_clear_follow_up():
+    prior = ImagingStudy(
+        study_id="CT1",
+        modality="CT",
+        body_site="chest",
+        performed_on=date(2024, 4, 13),
+        impression="8 mm pulmonary nodule.",
+        recommendations=("Recommend follow-up CT chest in 6 months",),
+    )
+    unrelated = ImagingStudy(
+        study_id="CT2",
+        modality="CT",
+        body_site="abdomen",
+        performed_on=date(2024, 11, 1),
+        impression="Normal abdomen.",
+    )
+    results = detect_discrepancies(
+        PatientRecord(imaging_studies=(prior, unrelated)), ClinicalContext(as_of=date(2025, 2, 3))
+    )
+    assert "overdue_follow_up" in kinds(results)

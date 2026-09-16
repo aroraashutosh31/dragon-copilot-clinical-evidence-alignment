@@ -22,6 +22,9 @@ _SOURCE_WEIGHT = {
     "allergy": 0.8,
 }
 
+#: Abnormal results are worth surfacing even when they match the context weakly.
+ABNORMAL_OBSERVATION_BOOST = 0.1
+
 
 @dataclass(frozen=True)
 class EvidenceItem:
@@ -161,7 +164,7 @@ def align_evidence(
                 detail="abnormal result" if observation.abnormal else "within expected range",
                 reference=observation.name,
                 occurred_on=observation.observed_on,
-                relevance=base + (0.1 if observation.abnormal else 0.0),
+                relevance=base + (ABNORMAL_OBSERVATION_BOOST if observation.abnormal else 0.0),
             )
         )
 

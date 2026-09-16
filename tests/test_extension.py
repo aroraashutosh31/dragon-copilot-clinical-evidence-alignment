@@ -89,3 +89,8 @@ def test_cli_json_output_with_overrides(capsys):
     result = json.loads(capsys.readouterr().out)
     assert len(result["evidence"]) <= 3
     assert "knee pain" in result["headline"]
+
+
+def test_cli_rejects_negative_limits():
+    with pytest.raises(SystemExit):
+        main([str(SAMPLE), "--max-evidence", "-1"])

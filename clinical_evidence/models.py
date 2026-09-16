@@ -42,6 +42,8 @@ def _as_tuple(value: Any) -> tuple[str, ...]:
         return ()
     if isinstance(value, str):
         return (value,)
+    if isinstance(value, Mapping):
+        raise ValueError(f"Expected a string or list of strings, got {value!r}")
     if isinstance(value, Iterable):
         return tuple(str(item) for item in value)
     raise ValueError(f"Expected a string or list of strings, got {value!r}")

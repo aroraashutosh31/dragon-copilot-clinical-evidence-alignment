@@ -15,6 +15,16 @@ from .extension import (
 from .models import ClinicalContext, PatientRecord
 
 
+def _non_negative_int(value: str) -> int:
+    try:
+        number = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{value!r} is not an integer") from None
+    if number < 0:
+        raise argparse.ArgumentTypeError("value must be zero or greater")
+    return number
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="clinical-evidence",
@@ -35,11 +45,14 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--as-of", default=None, help="Encounter date (YYYY-MM-DD)")
     parser.add_argument(
-        "--max-evidence", type=int, default=DEFAULT_MAX_EVIDENCE, help="Maximum evidence items"
+        "--max-evidence",
+        type=_non_negative_int,
+        default=DEFAULT_MAX_EVIDENCE,
+        help="Maximum evidence items",
     )
     parser.add_argument(
         "--max-discrepancies",
-        type=int,
+        type=_non_negative_int,
         default=DEFAULT_MAX_DISCREPANCIES,
         help="Maximum discrepancies",
     )

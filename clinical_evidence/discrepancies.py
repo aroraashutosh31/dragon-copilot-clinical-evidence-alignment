@@ -189,7 +189,7 @@ def _overdue_follow_ups(record: PatientRecord, context: ClinicalContext) -> list
             due_on = study.performed_on + timedelta(days=interval)
             if due_on > as_of:
                 continue
-            if _has_later_study(record, study, due_on):
+            if _has_later_study(record, study):
                 continue
             found.append(
                 Discrepancy(
@@ -205,14 +205,18 @@ def _overdue_follow_ups(record: PatientRecord, context: ClinicalContext) -> list
     return found
 
 
-def _has_later_study(record: PatientRecord, study: ImagingStudy, due_on: date) -> bool:
+def _has_later_study(record: PatientRecord, study: ImagingStudy) -> bool:
+    """True when a later study plausibly satisfies ``study``'s recommendation."""
+
     for other in record.imaging_studies:
         if other is study or other.performed_on is None:
             continue
         if other.performed_on <= study.performed_on:
             continue
-        same_site = bool(study.body_site) and keywords(other.body_site) & keywords(study.body_site)
-        if same_site or other.modality.lower() == study.modality.lower():
+        if study.body_site:
+            if keywords(other.body_site) & keywords(study.body_site):
+                return True
+        elif other.modality.lower() == study.modality.lower():
             return True
     return False
 

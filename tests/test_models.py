@@ -67,3 +67,8 @@ def test_clinical_context_text_combines_all_inputs():
     )
     assert context.as_of == date(2025, 2, 3)
     assert context.text == "nodule follow-up chest discomfort smoking history"
+
+
+def test_mapping_is_rejected_for_list_fields():
+    with pytest.raises(ValueError):
+        PatientRecord.from_dict({"imaging_studies": [{"id": "x", "findings": {"a": 1}}]})
