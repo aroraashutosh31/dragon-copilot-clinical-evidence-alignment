@@ -13,9 +13,15 @@ from .models import (
     Problem,
 )
 from .publisher import DEFAULT_PUBLISH_URL, EvidencePublisher, PublishError
+from .trigger import (
+    SEND_TO_EXTENSIONS_ACTION,
+    SendToExtensionsHandler,
+    handle_send_to_extensions,
+)
 
 __all__ = [
     "DEFAULT_PUBLISH_URL",
+    "SEND_TO_EXTENSIONS_ACTION",
     "Allergy",
     "ClinicalContext",
     "ClinicalEvidenceExtension",
@@ -29,8 +35,10 @@ __all__ = [
     "PatientRecord",
     "Problem",
     "PublishError",
+    "SendToExtensionsHandler",
     "align_evidence",
     "detect_discrepancies",
+    "handle_send_to_extensions",
 ]
 
 __version__ = "0.1.0"

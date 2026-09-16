@@ -84,6 +84,34 @@ Publishing is opt-in, requires HTTPS, and reads the bearer token from the
 `CLINICAL_EVIDENCE_PUBLISH_TOKEN` environment variable — no credentials are stored in the
 repository or in record files.
 
+### "Send to extensions"
+
+When **Send to extensions** is clicked in the review application, it posts a
+`send_to_extensions` event to this extension. `SendToExtensionsHandler` aligns the
+evidence and publishes the summary straight back to the app:
+
+```python
+from clinical_evidence import handle_send_to_extensions
+
+response = handle_send_to_extensions({
+    "action": "send_to_extensions",
+    "app_url": "https://vibehub.microsoft.com/app/asharora-hathct",
+    "request_id": "vibehub-7f3a",
+    "patient_record": {...},
+    "context": {...},
+})
+# {"action": ..., "published_to": ..., "http_status": 202, "request_id": ..., "summary": {...}}
+```
+
+The event's `app_url` is only honoured when it points at a trusted host
+(`ALLOWED_PUBLISH_HOSTS`), so a crafted event cannot redirect patient data elsewhere.
+
+Such an event can be replayed locally — publishing is implied, no `--publish` needed:
+
+```console
+$ python -m clinical_evidence examples/send_to_extensions_event.json
+```
+
 ## Development
 
 ```console

@@ -159,3 +159,34 @@ def test_cli_reports_malformed_dates(tmp_path, capsys):
     )
     assert main([str(bad)]) == 1
     assert "error:" in capsys.readouterr().err
+
+
+EVENT = Path(__file__).resolve().parents[1] / "examples" / "send_to_extensions_event.json"
+
+
+def test_cli_publishes_automatically_for_send_to_extensions_events(monkeypatch, capsys):
+    published = {}
+
+    class FakePublisher:
+        def __init__(self, url):
+            published["url"] = url
+
+        def publish(self, summary):
+            published["patient_id"] = summary.patient_id
+            return {"http_status": 202, "body": {}}
+
+    monkeypatch.setattr("clinical_evidence.cli.EvidencePublisher", FakePublisher)
+    assert main([str(EVENT)]) == 0
+    assert published["url"] == DEFAULT_PUBLISH_URL
+    assert published["patient_id"] == "demo-1042"
+    assert "HTTP 202" in capsys.readouterr().err
+
+
+def test_cli_refuses_untrusted_app_url(tmp_path, capsys):
+    event = json.loads(EVENT.read_text(encoding="utf-8"))
+    event["app_url"] = "https://attacker.example/collect"
+    path = tmp_path / "event.json"
+    path.write_text(json.dumps(event), encoding="utf-8")
+
+    assert main([str(path)]) == 1
+    assert "untrusted host" in capsys.readouterr().err

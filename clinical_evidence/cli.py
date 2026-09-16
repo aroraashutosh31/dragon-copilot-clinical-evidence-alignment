@@ -14,6 +14,7 @@ from .extension import (
 )
 from .models import ClinicalContext, PatientRecord
 from .publisher import DEFAULT_PUBLISH_URL, EvidencePublisher, PublishError
+from .trigger import SEND_TO_EXTENSIONS_ACTION, SendToExtensionsHandler
 
 
 def _non_negative_int(value: str) -> int:
@@ -61,7 +62,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--publish",
         action="store_true",
-        help="Publish the evidence summary to the review application",
+        help=(
+            "Publish the evidence summary to the review application (implied when "
+            f"the input is a {SEND_TO_EXTENSIONS_ACTION!r} event)"
+        ),
     )
     parser.add_argument(
         "--publish-url",
@@ -125,15 +129,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print(summary.render_text())
 
-    if args.publish:
+    if args.publish or data.get("action") == SEND_TO_EXTENSIONS_ACTION:
         try:
-            result = EvidencePublisher(args.publish_url).publish(summary)
+            handler = SendToExtensionsHandler(extension, default_url=args.publish_url)
+            url = handler.resolve_url(data.get("app_url"))
+            result = EvidencePublisher(url).publish(summary)
         except (PublishError, ValueError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1
         print(
-            f"Published evidence summary to {args.publish_url} "
-            f"(HTTP {result.get('http_status')})",
+            f"Published evidence summary to {url} (HTTP {result.get('http_status')})",
             file=sys.stderr,
         )
     return 0

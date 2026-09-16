@@ -56,6 +56,7 @@ host application (EHR / imaging connectors)
 | `discrepancies.py` | Independent detectors, de-duplication and severity ordering |
 | `extension.py` | Public entry points: `summarize()` and `handle_request()` |
 | `publisher.py` | Publishing summaries to the review application |
+| `trigger.py` | Handling the review application's "Send to extensions" event |
 | `cli.py` | Local/offline operation and manual verification |
 
 ## 4. Data model
@@ -132,15 +133,31 @@ Security and privacy decisions:
 * Transport failures raise `PublishError` with the endpoint and status, never the payload,
   so patient data cannot leak into error text or logs.
 * Publishing is opt-in: the library and CLI produce summaries without any network access
-  unless `--publish` is passed.
+  unless `--publish` is passed or the input is a `send_to_extensions` event.
 * `publish()` returns `{"http_status": int, "body": ...}` so the transport status can never
   be shadowed by a field of the application's own response.
+
+### 7.1 "Send to extensions" trigger
+
+Clicking **Send to extensions** in the review application posts a `send_to_extensions`
+event carrying `patient_record`, `context`, an optional `app_url` and an optional
+`request_id`. `trigger.SendToExtensionsHandler` validates the action, resolves the publish
+target, summarises and publishes, then returns
+`{action, published_to, http_status, request_id?, summary}` so the application can
+correlate the response with the click.
+
+The event arrives from outside this process, so its `app_url` is only accepted when its
+host is in `ALLOWED_PUBLISH_HOSTS` (derived from `DEFAULT_PUBLISH_URL`); otherwise a
+crafted event could redirect patient data to an arbitrary endpoint. An absent `app_url`
+falls back to the default target rather than failing, keeping the click working when the
+application omits it.
 
 ## 8. Interfaces
 
 * Library: `ClinicalEvidenceExtension().summarize(record, context) -> EvidenceSummary`.
 * Host RPC: `handle_request({"patient_record": ..., "context": ...}) -> dict`, validating
   that both members are objects.
+* Review-app trigger: `handle_send_to_extensions(event) -> dict`.
 * CLI: `python -m clinical_evidence RECORD [--reason ...] [--note ...] [--focus ...]
   [--as-of ...] [--json] [--publish [--publish-url URL]]`.
 
