@@ -284,6 +284,8 @@ def _when(value: date | None) -> str:
     return value.isoformat() if value else "date unknown"
 
 
+#: Every detector takes ``(record, context)`` for a uniform signature, even when
+#: it only needs the record.
 _DETECTORS = (
     _note_contradictions,
     _laterality_conflicts,

@@ -1,8 +1,8 @@
 """Publish evidence summaries to the Vibehub review application.
 
-The publisher posts the JSON produced by :class:`~clinical_evidence.extension.
-ClinicalEvidenceExtension` to an HTTPS endpoint so the surfaced evidence and
-discrepancies can be reviewed outside the dictation session.
+The publisher posts the JSON produced by ``ClinicalEvidenceExtension`` to an
+HTTPS endpoint so the surfaced evidence and discrepancies can be reviewed
+outside the dictation session.
 
 Credentials are never stored in code: the bearer token is read from the
 ``CLINICAL_EVIDENCE_PUBLISH_TOKEN`` environment variable (or passed explicitly by
@@ -29,6 +29,9 @@ TOKEN_ENV_VAR = "CLINICAL_EVIDENCE_PUBLISH_TOKEN"
 
 DEFAULT_TIMEOUT_SECONDS = 15.0
 
+#: Sentinel distinguishing "read the environment" from an explicit ``token=None``.
+_UNSET = object()
+
 
 class PublishError(RuntimeError):
     """Raised when an evidence summary could not be published."""
@@ -41,16 +44,18 @@ class EvidencePublisher:
         self,
         url: str = DEFAULT_PUBLISH_URL,
         *,
-        token: str | None = None,
+        token: str | None | Any = _UNSET,
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
     ) -> None:
+        """Pass ``token=None`` to send no ``Authorization`` header at all."""
+
         scheme = urllib.parse.urlparse(url).scheme.lower()
         if scheme != "https":
             raise ValueError(
                 f"Evidence may only be published over HTTPS, got {scheme or 'no'} scheme: {url}"
             )
         self.url = url
-        self.token = token if token is not None else os.environ.get(TOKEN_ENV_VAR)
+        self.token = os.environ.get(TOKEN_ENV_VAR) if token is _UNSET else token
         self.timeout = timeout
 
     def publish(self, summary: EvidenceSummary | Mapping[str, Any]) -> dict[str, Any]:

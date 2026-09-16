@@ -110,13 +110,15 @@ def test_cli_publishes_summary(monkeypatch, capsys):
 
         def publish(self, summary):
             published["patient_id"] = summary.patient_id
-            return {"status": 202}
+            return {"http_status": 202, "body": {}}
 
     monkeypatch.setattr("clinical_evidence.cli.EvidencePublisher", FakePublisher)
     assert main([str(SAMPLE), "--publish"]) == 0
     assert published["url"] == DEFAULT_PUBLISH_URL
     assert published["patient_id"] == "demo-1042"
-    assert "Published evidence summary" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "Published evidence summary" in err
+    assert "HTTP 202" in err
 
 
 def test_cli_reports_publish_failures(monkeypatch, capsys):

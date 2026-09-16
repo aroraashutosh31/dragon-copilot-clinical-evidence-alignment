@@ -114,3 +114,12 @@ def test_http_and_network_errors_raise_publish_error(monkeypatch, summary):
     _capture(monkeypatch, URLError("connection refused"))
     with pytest.raises(PublishError, match="connection refused"):
         EvidencePublisher(token=None).publish(summary)
+
+
+def test_explicit_none_token_disables_the_header(monkeypatch, summary):
+    monkeypatch.setenv(TOKEN_ENV_VAR, "s3cret")
+    sent = _capture(monkeypatch, _FakeResponse())
+
+    EvidencePublisher(token=None).publish(summary)
+
+    assert sent["request"].get_header("Authorization") is None

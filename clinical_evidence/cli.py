@@ -127,11 +127,15 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.publish:
         try:
-            EvidencePublisher(args.publish_url).publish(summary)
+            result = EvidencePublisher(args.publish_url).publish(summary)
         except (PublishError, ValueError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1
-        print(f"Published evidence summary to {args.publish_url}", file=sys.stderr)
+        print(
+            f"Published evidence summary to {args.publish_url} "
+            f"(HTTP {result.get('http_status')})",
+            file=sys.stderr,
+        )
     return 0
 
 
