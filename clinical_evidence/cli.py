@@ -98,7 +98,9 @@ def _allowed_hosts(publish_url: str) -> frozenset[str]:
     """Trust the operator-supplied ``--publish-url`` host alongside the default one."""
 
     host = urllib.parse.urlparse(publish_url).hostname
-    return ALLOWED_PUBLISH_HOSTS | {host} if host else ALLOWED_PUBLISH_HOSTS
+    if not host:
+        return ALLOWED_PUBLISH_HOSTS
+    return ALLOWED_PUBLISH_HOSTS | {host}
 
 
 def _publish_event(
