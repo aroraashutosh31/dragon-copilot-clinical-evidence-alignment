@@ -65,7 +65,7 @@ def test_publish_posts_summary_json(monkeypatch, summary):
     assert request.get_header("Content-type") == "application/json"
     assert json.loads(request.data.decode("utf-8")) == summary.to_dict()
     assert request.get_header("Authorization") is None
-    assert result == {"id": "abc", "status": 201}
+    assert result == {"id": "abc", "http_status": 201}
 
 
 def test_token_from_environment_is_sent_as_bearer(monkeypatch, summary):
@@ -87,7 +87,7 @@ def test_non_json_response_is_returned_verbatim(monkeypatch, summary):
     _capture(monkeypatch, _FakeResponse(b"accepted"))
     assert EvidencePublisher(token=None).publish(summary) == {
         "response": "accepted",
-        "status": 200,
+        "http_status": 200,
     }
 
 

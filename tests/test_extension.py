@@ -137,3 +137,13 @@ def test_cli_rejects_non_object_json(tmp_path):
     bad.write_text("[]", encoding="utf-8")
     with pytest.raises(SystemExit):
         main([str(bad)])
+
+
+def test_cli_reports_malformed_dates(tmp_path, capsys):
+    bad = tmp_path / "bad.json"
+    bad.write_text(
+        json.dumps({"patient_record": {"problems": [{"name": "x", "onset_date": "13/04/2024"}]}}),
+        encoding="utf-8",
+    )
+    assert main([str(bad)]) == 1
+    assert "error:" in capsys.readouterr().err

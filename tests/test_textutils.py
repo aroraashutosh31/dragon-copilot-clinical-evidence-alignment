@@ -40,3 +40,8 @@ def test_follow_up_interval_days():
     assert follow_up_interval_days("Repeat ultrasound in 2 weeks") == 14
     assert follow_up_interval_days("Mild coronary artery calcification") is None
     assert follow_up_interval_days("Follow-up as clinically indicated") is None
+
+
+def test_laterality_is_not_treated_as_a_stop_word():
+    assert keywords("left knee") == {"left", "knee"}
+    assert not mentions("left knee pain", "right knee")

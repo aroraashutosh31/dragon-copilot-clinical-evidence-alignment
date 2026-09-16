@@ -86,7 +86,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
 
     data = _load_record(args.record)
-    record = PatientRecord.from_dict(data.get("patient_record", data))
     context_data: dict[str, Any] = dict(data.get("context") or {})
     if args.reason:
         context_data["reason_for_visit"] = args.reason
@@ -96,7 +95,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         context_data["focus_terms"] = args.focus
     if args.as_of:
         context_data["as_of"] = args.as_of
-    context = ClinicalContext.from_dict(context_data)
+
+    try:
+        record = PatientRecord.from_dict(data.get("patient_record", data))
+        context = ClinicalContext.from_dict(context_data)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
     extension = ClinicalEvidenceExtension(
         max_evidence=args.max_evidence, max_discrepancies=args.max_discrepancies

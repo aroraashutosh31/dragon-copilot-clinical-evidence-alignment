@@ -27,7 +27,7 @@ STOPWORDS = frozenset(
     evidence for from had has have her his in into is it its mm no not of on or
     patient patients prior present rule ruled she seen show showed shows since so
     that the their then there these this to unchanged was we were which with
-    without year years month months week weeks day days left right bilateral
+    without year years month months week weeks day days
     """.split()
 )
 

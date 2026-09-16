@@ -62,7 +62,13 @@ def _recency_score(occurred_on: date | None, as_of: date) -> float:
     return max(0.0, 1.0 - age_days / RECENCY_HORIZON_DAYS)
 
 
-def _score(source: str, text: str, occurred_on: date | None, context_terms: set[str], as_of: date) -> float:
+def _score(
+    source: str,
+    text: str,
+    occurred_on: date | None,
+    context_terms: set[str],
+    as_of: date,
+) -> float:
     match = overlap_score(context_terms, text)
     recency = _recency_score(occurred_on, as_of)
     weight = _SOURCE_WEIGHT.get(source, 0.7)
@@ -106,7 +112,13 @@ def align_evidence(
                 detail=detail,
                 reference=study.study_id or study.label,
                 occurred_on=study.performed_on,
-                relevance=_score("imaging", f"{study.label} {study.text}", study.performed_on, context_terms, as_of),
+                relevance=_score(
+                    "imaging",
+                    f"{study.label} {study.text}",
+                    study.performed_on,
+                    context_terms,
+                    as_of,
+                ),
             )
         )
 

@@ -72,3 +72,8 @@ def test_clinical_context_text_combines_all_inputs():
 def test_mapping_is_rejected_for_list_fields():
     with pytest.raises(ValueError):
         PatientRecord.from_dict({"imaging_studies": [{"id": "x", "findings": {"a": 1}}]})
+
+
+def test_bytes_are_rejected_for_list_fields():
+    with pytest.raises(ValueError):
+        PatientRecord.from_dict({"imaging_studies": [{"id": "x", "findings": b"nodule"}]})

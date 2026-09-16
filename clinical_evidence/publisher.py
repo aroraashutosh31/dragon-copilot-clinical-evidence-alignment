@@ -55,7 +55,8 @@ class EvidencePublisher:
         """Publish ``summary`` and return the parsed response body.
 
         The response is returned as a dictionary; a non-JSON response body is
-        reported under the ``"response"`` key.
+        reported under the ``"response"`` key and the transport status is always
+        available under ``"http_status"``.
         """
 
         payload = summary.to_dict() if isinstance(summary, EvidenceSummary) else dict(summary)
@@ -89,5 +90,5 @@ class EvidencePublisher:
             parsed = {"response": raw}
         if not isinstance(parsed, dict):
             parsed = {"response": parsed}
-        parsed.setdefault("status", status)
+        parsed["http_status"] = status
         return parsed

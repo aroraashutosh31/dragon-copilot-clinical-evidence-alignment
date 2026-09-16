@@ -57,7 +57,7 @@ class Discrepancy:
         return f"[{self.severity}] {self.summary}{detail}"
 
 
-def _phrases(study: ImagingStudy) -> list[str]:
+def _phrases(study: ImagingStudy) -> tuple[str, ...]:
     raw = [study.impression, *study.findings]
     phrases: list[str] = []
     for chunk in raw:
@@ -69,17 +69,20 @@ def _phrases(study: ImagingStudy) -> list[str]:
             if not tokens or len(phrase.split()) > 14:
                 continue
             phrases.append(phrase)
-    return phrases
+    return tuple(phrases)
 
 
-def _documented_in_problem_list(phrase: str, record: PatientRecord) -> bool:
+def _problem_keyword_sets(record: PatientRecord) -> list[set[str]]:
+    """Tokenise each problem name once per detection run."""
+
+    return [terms for terms in (keywords(p.name) for p in record.problems) if terms]
+
+
+def _documented_in_problem_list(phrase: str, problem_keyword_sets: list[set[str]]) -> bool:
     phrase_terms = keywords(phrase)
     if not phrase_terms:
         return True
-    for problem in record.problems:
-        problem_terms = keywords(problem.name)
-        if not problem_terms:
-            continue
+    for problem_terms in problem_keyword_sets:
         shared = len(problem_terms & phrase_terms) / len(problem_terms)
         if shared >= _MATCH_THRESHOLD:
             return True
@@ -88,13 +91,14 @@ def _documented_in_problem_list(phrase: str, record: PatientRecord) -> bool:
 
 def _unaddressed_findings(record: PatientRecord, context: ClinicalContext) -> list[Discrepancy]:
     found: list[Discrepancy] = []
+    problem_keyword_sets = _problem_keyword_sets(record)
     for study in record.imaging_studies:
         for phrase in _phrases(study):
             if is_negated(study.text, phrase):
                 continue
             if follow_up_interval_days(phrase) is not None:
                 continue
-            if _documented_in_problem_list(phrase, record):
+            if _documented_in_problem_list(phrase, problem_keyword_sets):
                 continue
             found.append(
                 Discrepancy(
