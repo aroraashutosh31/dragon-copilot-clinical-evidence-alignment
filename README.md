@@ -103,7 +103,7 @@ response = handle_send_to_extensions({
 # {"action": ..., "published_to": ..., "http_status": 202, "request_id": ..., "summary": {...}}
 ```
 
-The event's `app_url` is only honoured when it points at a trusted host
+The event's `app_url` is only honoured when it is an `https` URL pointing at a trusted host
 (`clinical_evidence.ALLOWED_PUBLISH_HOSTS`), so a crafted event cannot redirect patient
 data elsewhere.
 

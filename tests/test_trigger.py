@@ -148,3 +148,23 @@ def test_precomputed_summary_is_published_without_recomputing(handler, event):
 
     assert response["summary"] == {"patient_id": "p9", "evidence": []}
     assert _RecordingPublisher.calls[0][1] == {"patient_id": "p9", "evidence": []}
+
+
+def test_plain_http_app_url_is_refused(handler, event):
+    event["app_url"] = "http://vibehub.microsoft.com/app/asharora-hathct"
+    with pytest.raises(ValueError, match="https is required"):
+        handler.handle(event)
+    assert _RecordingPublisher.calls == []
+
+
+def test_publisher_result_without_a_status_is_an_error(event):
+    class _Statusless:
+        def __init__(self, url):
+            self.url = url
+
+        def publish(self, payload):
+            return {"body": "ok"}
+
+    handler = SendToExtensionsHandler(publisher_factory=_Statusless)
+    with pytest.raises(PublishError, match="no 'http_status'"):
+        handler.handle(event)

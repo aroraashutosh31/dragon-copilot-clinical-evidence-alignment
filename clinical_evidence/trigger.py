@@ -28,7 +28,7 @@ import urllib.parse
 from typing import Any, Callable, Mapping, Protocol
 
 from .extension import ClinicalEvidenceExtension
-from .publisher import DEFAULT_PUBLISH_URL, EvidencePublisher
+from .publisher import DEFAULT_PUBLISH_URL, EvidencePublisher, PublishError
 
 __all__ = [
     "ALLOWED_PUBLISH_HOSTS",
@@ -104,11 +104,13 @@ class SendToExtensionsHandler:
         payload = dict(summary) if summary is not None else self.extension.handle_request(event)
         factory = self.publisher_factory or EvidencePublisher
         result = factory(url).publish(payload)
+        if "http_status" not in result:
+            raise PublishError(f"Publisher returned no 'http_status' for {url}")
 
         response: dict[str, Any] = {
             "action": SEND_TO_EXTENSIONS_ACTION,
             "published_to": url,
-            "http_status": result.get("http_status"),
+            "http_status": result["http_status"],
             "summary": payload,
         }
         request_id = event.get("request_id")
@@ -126,7 +128,13 @@ class SendToExtensionsHandler:
         return self._check_host(app_url)
 
     def _check_host(self, url: str) -> str:
-        host = urllib.parse.urlparse(url).hostname
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme != "https":
+            raise ValueError(
+                "Refusing to publish patient evidence over "
+                f"{parsed.scheme or 'an unspecified'} scheme, https is required: {url}"
+            )
+        host = parsed.hostname
         if not host:
             raise ValueError(f"Publish URL has no host: {url!r}")
         if host not in self.allowed_hosts:
