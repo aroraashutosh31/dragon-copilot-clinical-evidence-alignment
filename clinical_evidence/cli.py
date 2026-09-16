@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import urllib.parse
 from typing import Any, Mapping, Sequence
 
 from .extension import (
@@ -14,7 +15,7 @@ from .extension import (
 )
 from .models import ClinicalContext, PatientRecord
 from .publisher import DEFAULT_PUBLISH_URL, EvidencePublisher, PublishError
-from .trigger import SEND_TO_EXTENSIONS_ACTION, SendToExtensionsHandler
+from .trigger import ALLOWED_PUBLISH_HOSTS, SEND_TO_EXTENSIONS_ACTION, SendToExtensionsHandler
 
 
 def _non_negative_int(value: str) -> int:
@@ -93,6 +94,13 @@ def _load_record(path: str) -> dict[str, Any]:
     return data
 
 
+def _allowed_hosts(publish_url: str) -> frozenset[str]:
+    """Trust the operator-supplied ``--publish-url`` host alongside the default one."""
+
+    host = urllib.parse.urlparse(publish_url).hostname
+    return ALLOWED_PUBLISH_HOSTS | {host} if host else ALLOWED_PUBLISH_HOSTS
+
+
 def _publish_event(
     handler: SendToExtensionsHandler,
     data: dict[str, Any],
@@ -145,13 +153,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     if is_event or args.publish:
         try:
             if is_event:
-                handler = SendToExtensionsHandler(extension, default_url=args.publish_url)
+                handler = SendToExtensionsHandler(
+                    extension,
+                    default_url=args.publish_url,
+                    allowed_hosts=_allowed_hosts(args.publish_url),
+                )
                 published_to, status = _publish_event(
                     handler, data, context_data, summary.to_dict()
                 )
             else:
                 published_to = args.publish_url
-                status = EvidencePublisher(published_to).publish(summary).get("http_status")
+                result = EvidencePublisher(published_to).publish(summary)
+                if "http_status" not in result:
+                    raise PublishError(f"Publisher returned no 'http_status' for {published_to}")
+                status = result["http_status"]
         except (PublishError, ValueError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1

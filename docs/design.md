@@ -154,6 +154,8 @@ configured `default_url` is checked the same way, so no configuration path can r
 unexpected destination either. An absent `app_url` falls back to the default target rather
 than failing, keeping the click working when the application omits it. The event must also
 declare its `action` explicitly — patient data is never transmitted on an assumed action.
+The CLI's `--publish-url` is an explicit operator choice, so its host is added to the
+allow-list for that run; an event may then nominate the default target or that host.
 
 ## 8. Interfaces
 

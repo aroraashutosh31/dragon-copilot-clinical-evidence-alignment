@@ -190,3 +190,23 @@ def test_cli_refuses_untrusted_app_url(tmp_path, capsys):
 
     assert main([str(path)]) == 1
     assert "untrusted host" in capsys.readouterr().err
+
+
+def test_cli_publish_url_is_honoured_for_events(monkeypatch, tmp_path, capsys):
+    published = {}
+
+    class FakePublisher:
+        def __init__(self, url):
+            published["url"] = url
+
+        def publish(self, summary):
+            return {"http_status": 200, "body": {}}
+
+    event = json.loads(EVENT.read_text(encoding="utf-8"))
+    event.pop("app_url", None)
+    path = tmp_path / "event.json"
+    path.write_text(json.dumps(event), encoding="utf-8")
+
+    monkeypatch.setattr("clinical_evidence.trigger.EvidencePublisher", FakePublisher)
+    assert main([str(path), "--publish-url", "https://staging.example/app/asharora-hathct"]) == 0
+    assert published["url"] == "https://staging.example/app/asharora-hathct"
