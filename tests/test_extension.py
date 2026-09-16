@@ -132,11 +132,21 @@ def test_cli_reports_publish_failures(monkeypatch, capsys):
     assert "error: boom" in capsys.readouterr().err
 
 
-def test_cli_rejects_non_object_json(tmp_path):
+def test_cli_rejects_non_object_json(tmp_path, capsys):
     bad = tmp_path / "bad.json"
     bad.write_text("[]", encoding="utf-8")
-    with pytest.raises(SystemExit):
-        main([str(bad)])
+    assert main([str(bad)]) == 1
+    assert "expected a JSON object" in capsys.readouterr().err
+
+
+def test_cli_reports_unreadable_and_invalid_json(tmp_path, capsys):
+    assert main([str(tmp_path / "missing.json")]) == 1
+    assert "error:" in capsys.readouterr().err
+
+    broken = tmp_path / "broken.json"
+    broken.write_text("{", encoding="utf-8")
+    assert main([str(broken)]) == 1
+    assert "invalid JSON" in capsys.readouterr().err
 
 
 def test_cli_reports_malformed_dates(tmp_path, capsys):

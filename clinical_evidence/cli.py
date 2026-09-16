@@ -72,20 +72,32 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _load_record(path: str) -> dict[str, Any]:
-    if path == "-":
-        data = json.load(sys.stdin)
-    else:
-        with open(path, "r", encoding="utf-8") as handle:
-            data = json.load(handle)
+    """Load the encounter JSON, raising ``ValueError`` for unusable input."""
+
+    try:
+        if path == "-":
+            data = json.load(sys.stdin)
+        else:
+            with open(path, "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+    except OSError as exc:
+        raise ValueError(f"{path}: {exc.strerror or exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{path}: invalid JSON ({exc})") from exc
     if not isinstance(data, dict):
-        raise SystemExit(f"{path}: expected a JSON object, got {type(data).__name__}")
+        raise ValueError(f"{path}: expected a JSON object, got {type(data).__name__}")
     return data
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
 
-    data = _load_record(args.record)
+    try:
+        data = _load_record(args.record)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
     context_data: dict[str, Any] = dict(data.get("context") or {})
     if args.reason:
         context_data["reason_for_visit"] = args.reason

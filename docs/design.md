@@ -133,6 +133,8 @@ Security and privacy decisions:
   so patient data cannot leak into error text or logs.
 * Publishing is opt-in: the library and CLI produce summaries without any network access
   unless `--publish` is passed.
+* `publish()` returns `{"http_status": int, "body": ...}` so the transport status can never
+  be shadowed by a field of the application's own response.
 
 ## 8. Interfaces
 

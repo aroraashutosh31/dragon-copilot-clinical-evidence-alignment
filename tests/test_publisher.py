@@ -65,7 +65,7 @@ def test_publish_posts_summary_json(monkeypatch, summary):
     assert request.get_header("Content-type") == "application/json"
     assert json.loads(request.data.decode("utf-8")) == summary.to_dict()
     assert request.get_header("Authorization") is None
-    assert result == {"id": "abc", "http_status": 201}
+    assert result == {"http_status": 201, "body": {"id": "abc"}}
 
 
 def test_token_from_environment_is_sent_as_bearer(monkeypatch, summary):
@@ -83,11 +83,18 @@ def test_mapping_payloads_are_accepted(monkeypatch):
     assert json.loads(sent["request"].data.decode("utf-8")) == {"patient_id": "p9"}
 
 
+def test_server_http_status_field_is_not_shadowed(monkeypatch, summary):
+    _capture(monkeypatch, _FakeResponse(b'{"http_status": "queued"}', 202))
+    result = EvidencePublisher(token=None).publish(summary)
+    assert result["http_status"] == 202
+    assert result["body"] == {"http_status": "queued"}
+
+
 def test_non_json_response_is_returned_verbatim(monkeypatch, summary):
     _capture(monkeypatch, _FakeResponse(b"accepted"))
     assert EvidencePublisher(token=None).publish(summary) == {
-        "response": "accepted",
         "http_status": 200,
+        "body": "accepted",
     }
 
 

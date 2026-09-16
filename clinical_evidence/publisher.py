@@ -46,17 +46,19 @@ class EvidencePublisher:
     ) -> None:
         scheme = urllib.parse.urlparse(url).scheme.lower()
         if scheme != "https":
-            raise ValueError("Evidence may only be published over HTTPS")
+            raise ValueError(
+                f"Evidence may only be published over HTTPS, got {scheme or 'no'} scheme: {url}"
+            )
         self.url = url
         self.token = token if token is not None else os.environ.get(TOKEN_ENV_VAR)
         self.timeout = timeout
 
     def publish(self, summary: EvidenceSummary | Mapping[str, Any]) -> dict[str, Any]:
-        """Publish ``summary`` and return the parsed response body.
+        """Publish ``summary`` and return the transport status and response body.
 
-        The response is returned as a dictionary; a non-JSON response body is
-        reported under the ``"response"`` key and the transport status is always
-        available under ``"http_status"``.
+        The result is ``{"http_status": int, "body": ...}``; ``body`` is the parsed
+        JSON response when the application returns JSON, the raw text otherwise,
+        and is never merged with the transport status.
         """
 
         payload = summary.to_dict() if isinstance(summary, EvidenceSummary) else dict(summary)
@@ -85,10 +87,7 @@ class EvidencePublisher:
             raise PublishError(f"Publishing to {self.url} failed: {exc.reason}") from exc
 
         try:
-            parsed = json.loads(raw) if raw else {}
+            body_value: Any = json.loads(raw) if raw else {}
         except json.JSONDecodeError:
-            parsed = {"response": raw}
-        if not isinstance(parsed, dict):
-            parsed = {"response": parsed}
-        parsed["http_status"] = status
-        return parsed
+            body_value = raw
+        return {"http_status": status, "body": body_value}
