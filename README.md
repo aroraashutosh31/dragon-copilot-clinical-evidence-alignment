@@ -14,10 +14,6 @@ to find and review within the clinical workflow.
 - Make evidence sources clear, traceable, and easy to assess.
 - Support safer, more informed clinical documentation workflows.
 
-## Submission
-
-Project context is available through the [Hackathon 2026 submission](https://innovation-studio.microsoft.com/events/hackathon2026/submissions/projects/proj-ba7f2124-3566-40e1-afc8-a69966bb43f4).
-
 ## Repository Status
 
 This repository currently contains project documentation. Implementation details,
