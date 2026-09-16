@@ -164,7 +164,9 @@ def align_evidence(
                 detail="abnormal result" if observation.abnormal else "within expected range",
                 reference=observation.name,
                 occurred_on=observation.observed_on,
-                relevance=base + (ABNORMAL_OBSERVATION_BOOST if observation.abnormal else 0.0),
+                relevance=min(
+                    1.0, base + (ABNORMAL_OBSERVATION_BOOST if observation.abnormal else 0.0)
+                ),
             )
         )
 

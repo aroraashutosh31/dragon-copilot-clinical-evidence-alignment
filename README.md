@@ -29,6 +29,10 @@ flags items **for review** and never asserts a clinical conclusion on its own.
 
 4. **Summarise** – `ClinicalEvidenceExtension.summarize()` returns an `EvidenceSummary`
    that renders as the compact side-panel text or as JSON.
+5. **Publish** – `EvidencePublisher` posts the summary to the review application so the
+   surfaced evidence can be followed up outside the dictation session.
+
+See [`docs/design.md`](docs/design.md) for the full design.
 
 ## Usage
 
@@ -58,6 +62,27 @@ Potential discrepancies to review:
 
 Add `--json` for machine-readable output, or `--reason`, `--note`, `--focus` and
 `--as-of` to override the encounter context.
+
+## Publishing
+
+Summaries can be published to the Vibehub review application
+(`https://vibehub.microsoft.com/app/asharora-hathct` by default):
+
+```console
+$ export CLINICAL_EVIDENCE_PUBLISH_TOKEN="<token>"
+$ python -m clinical_evidence examples/sample_encounter.json --publish
+```
+
+```python
+from clinical_evidence import EvidencePublisher
+
+EvidencePublisher().publish(summary)          # default endpoint
+EvidencePublisher("https://example/app").publish(summary)
+```
+
+Publishing is opt-in, requires HTTPS, and reads the bearer token from the
+`CLINICAL_EVIDENCE_PUBLISH_TOKEN` environment variable — no credentials are stored in the
+repository or in record files.
 
 ## Development
 

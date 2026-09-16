@@ -13,6 +13,7 @@ from .extension import (
     ClinicalEvidenceExtension,
 )
 from .models import ClinicalContext, PatientRecord
+from .publisher import DEFAULT_PUBLISH_URL, EvidencePublisher, PublishError
 
 
 def _non_negative_int(value: str) -> int:
@@ -57,14 +58,28 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Maximum discrepancies",
     )
     parser.add_argument("--json", action="store_true", help="Emit JSON instead of text")
+    parser.add_argument(
+        "--publish",
+        action="store_true",
+        help="Publish the evidence summary to the review application",
+    )
+    parser.add_argument(
+        "--publish-url",
+        default=DEFAULT_PUBLISH_URL,
+        help=f"HTTPS endpoint to publish to (default: {DEFAULT_PUBLISH_URL})",
+    )
     return parser
 
 
 def _load_record(path: str) -> dict[str, Any]:
     if path == "-":
-        return json.load(sys.stdin)
-    with open(path, "r", encoding="utf-8") as handle:
-        return json.load(handle)
+        data = json.load(sys.stdin)
+    else:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    if not isinstance(data, dict):
+        raise SystemExit(f"{path}: expected a JSON object, got {type(data).__name__}")
+    return data
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -92,6 +107,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(summary.to_dict(), indent=2))
     else:
         print(summary.render_text())
+
+    if args.publish:
+        try:
+            EvidencePublisher(args.publish_url).publish(summary)
+        except (PublishError, ValueError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        print(f"Published evidence summary to {args.publish_url}", file=sys.stderr)
     return 0
 
 

@@ -3,7 +3,12 @@ from pathlib import Path
 
 import pytest
 
-from clinical_evidence import ClinicalEvidenceExtension, PatientRecord
+from clinical_evidence import (
+    DEFAULT_PUBLISH_URL,
+    ClinicalEvidenceExtension,
+    PatientRecord,
+    PublishError,
+)
 from clinical_evidence.cli import main
 
 SAMPLE = Path(__file__).resolve().parents[1] / "examples" / "sample_encounter.json"
@@ -94,3 +99,41 @@ def test_cli_json_output_with_overrides(capsys):
 def test_cli_rejects_negative_limits():
     with pytest.raises(SystemExit):
         main([str(SAMPLE), "--max-evidence", "-1"])
+
+
+def test_cli_publishes_summary(monkeypatch, capsys):
+    published = {}
+
+    class FakePublisher:
+        def __init__(self, url):
+            published["url"] = url
+
+        def publish(self, summary):
+            published["patient_id"] = summary.patient_id
+            return {"status": 202}
+
+    monkeypatch.setattr("clinical_evidence.cli.EvidencePublisher", FakePublisher)
+    assert main([str(SAMPLE), "--publish"]) == 0
+    assert published["url"] == DEFAULT_PUBLISH_URL
+    assert published["patient_id"] == "demo-1042"
+    assert "Published evidence summary" in capsys.readouterr().err
+
+
+def test_cli_reports_publish_failures(monkeypatch, capsys):
+    class FailingPublisher:
+        def __init__(self, url):
+            pass
+
+        def publish(self, summary):
+            raise PublishError("boom")
+
+    monkeypatch.setattr("clinical_evidence.cli.EvidencePublisher", FailingPublisher)
+    assert main([str(SAMPLE), "--publish"]) == 1
+    assert "error: boom" in capsys.readouterr().err
+
+
+def test_cli_rejects_non_object_json(tmp_path):
+    bad = tmp_path / "bad.json"
+    bad.write_text("[]", encoding="utf-8")
+    with pytest.raises(SystemExit):
+        main([str(bad)])

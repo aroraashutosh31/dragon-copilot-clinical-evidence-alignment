@@ -206,7 +206,12 @@ def _overdue_follow_ups(record: PatientRecord, context: ClinicalContext) -> list
 
 
 def _has_later_study(record: PatientRecord, study: ImagingStudy) -> bool:
-    """True when a later study plausibly satisfies ``study``'s recommendation."""
+    """True when a later study plausibly satisfies ``study``'s recommendation.
+
+    Body site drives the match because modality names vary between systems and a
+    later study of the same site is what a clinician needs to review; modality is
+    only used when the prior study has no body site recorded.
+    """
 
     for other in record.imaging_studies:
         if other is study or other.performed_on is None:
