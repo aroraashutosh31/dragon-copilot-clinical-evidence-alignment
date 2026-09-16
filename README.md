@@ -1,1 +1,67 @@
 # dragon-copilot-clinical-evidence-alignment
+
+Dragon Copilot extension that surfaces concise, patient-specific evidence from prior
+imaging and EHR data, highlighting relevant context and potential discrepancies for
+clinician review.
+
+The extension is intentionally explainable and dependency-free: every surfaced item
+carries its source, date and reference so a clinician can trace why it was shown. It
+flags items **for review** and never asserts a clinical conclusion on its own.
+
+## How it works
+
+1. **Ingest** – `PatientRecord` and `ClinicalContext` are built from the JSON the host
+   application provides (prior imaging studies, problem list, medications, observations,
+   allergies plus the reason for visit / note being dictated).
+2. **Align** – `align_evidence()` ranks each piece of prior evidence by how well it
+   matches the current context and how recent it is, returning only the top items.
+3. **Compare** – `detect_discrepancies()` compares the note and the EHR against the prior
+   imaging reports and returns potential inconsistencies, most severe first:
+
+   | Kind | Example |
+   | --- | --- |
+   | `note_contradicts_imaging` | note documents "no pulmonary nodule" while a prior CT reported one |
+   | `laterality_mismatch` | note references the right knee, prior MRI documented the left |
+   | `overdue_follow_up` | "follow-up CT in 6 months" with no subsequent study |
+   | `allergy_conflict` | active medication matching a documented allergy |
+   | `medication_for_resolved_problem` | antibiotic still active for a resolved infection |
+   | `finding_not_on_problem_list` | imaging finding never added to the problem list |
+
+4. **Summarise** – `ClinicalEvidenceExtension.summarize()` returns an `EvidenceSummary`
+   that renders as the compact side-panel text or as JSON.
+
+## Usage
+
+```python
+from clinical_evidence import ClinicalEvidenceExtension
+
+extension = ClinicalEvidenceExtension(max_evidence=5, max_discrepancies=5)
+response = extension.handle_request({
+    "patient_record": {...},
+    "context": {"reason_for_visit": "pulmonary nodule follow-up", "note_text": "..."},
+})
+```
+
+Command line, using the bundled example:
+
+```console
+$ python -m clinical_evidence examples/sample_encounter.json
+5 prior finding(s) relevant to Follow-up of pulmonary nodule, shortness of breath; 5 potential discrepancy(ies) to review.
+
+Relevant prior evidence:
+  • Prior CT right chest (2024-04-13) — 8 mm solid pulmonary nodule in the right upper lobe. ...
+
+Potential discrepancies to review:
+  • [high] Current documentation states absence of: pulmonary nodule — CT right chest (2024-04-13) reported: ...
+  • [high] Recommended follow-up imaging appears overdue (due 2024-10-10) — ...
+```
+
+Add `--json` for machine-readable output, or `--reason`, `--note`, `--focus` and
+`--as-of` to override the encounter context.
+
+## Development
+
+```console
+pip install -e ".[test]"
+python -m pytest
+```

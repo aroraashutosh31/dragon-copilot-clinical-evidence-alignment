@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clinical-evidence-alignment"
+version = "0.1.0"
+description = "Dragon Copilot extension surfacing patient-specific evidence from prior imaging and EHR data"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+clinical-evidence = "clinical_evidence.cli:main"
+
+[tool.setuptools]
+packages = ["clinical_evidence"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
