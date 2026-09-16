@@ -1,0 +1,86 @@
+{
+  "action": "send_to_extensions",
+  "app_url": "https://vibehub.microsoft.com/app/asharora-hathct",
+  "request_id": "vibehub-7f3a",
+  "patient_record": {
+    "patient_id": "demo-1042",
+    "imaging_studies": [
+      {
+        "study_id": "CT-2024-0413",
+        "modality": "CT",
+        "body_site": "chest",
+        "laterality": "right",
+        "performed_on": "2024-04-13",
+        "impression": "8 mm solid pulmonary nodule in the right upper lobe. Mild coronary artery calcification.",
+        "findings": [
+          "No pleural effusion",
+          "Stable mediastinal lymph nodes"
+        ],
+        "recommendations": [
+          "Recommend follow-up CT chest in 6 months"
+        ]
+      },
+      {
+        "study_id": "XR-2023-1102",
+        "modality": "radiograph",
+        "body_site": "chest",
+        "performed_on": "2023-11-02",
+        "impression": "No acute cardiopulmonary process."
+      }
+    ],
+    "problems": [
+      {
+        "name": "Hypertension",
+        "status": "active",
+        "onset_date": "2019-06-01",
+        "code": "I10"
+      },
+      {
+        "name": "Community acquired pneumonia",
+        "status": "resolved",
+        "onset_date": "2023-10-28"
+      }
+    ],
+    "medications": [
+      {
+        "name": "Lisinopril",
+        "status": "active",
+        "started_on": "2019-06-05",
+        "indication": "Hypertension"
+      },
+      {
+        "name": "Amoxicillin",
+        "status": "active",
+        "started_on": "2023-10-29",
+        "indication": "Community acquired pneumonia"
+      }
+    ],
+    "observations": [
+      {
+        "name": "Hemoglobin",
+        "value": "10.2",
+        "unit": "g/dL",
+        "observed_on": "2025-01-14",
+        "abnormal": true
+      },
+      {
+        "name": "Creatinine",
+        "value": "0.9",
+        "unit": "mg/dL",
+        "observed_on": "2025-01-14"
+      }
+    ],
+    "allergies": [
+      {
+        "substance": "Amoxicillin",
+        "reaction": "hives",
+        "severity": "moderate"
+      }
+    ]
+  },
+  "context": {
+    "reason_for_visit": "Follow-up of pulmonary nodule, shortness of breath",
+    "note_text": "Patient returns for evaluation of the right chest. No pulmonary nodule seen previously.",
+    "as_of": "2025-02-03"
+  }
+}
