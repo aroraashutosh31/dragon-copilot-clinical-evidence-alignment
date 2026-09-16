@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
 from .extension import (
     DEFAULT_MAX_DISCREPANCIES,
@@ -97,10 +97,11 @@ def _publish_event(
     handler: SendToExtensionsHandler,
     data: dict[str, Any],
     context_data: dict[str, Any],
+    summary: Mapping[str, Any],
 ) -> tuple[str, Any]:
     """Replay a "send to extensions" event through the shared handler."""
 
-    response = handler.handle({**data, "context": context_data})
+    response = handler.handle({**data, "context": context_data}, summary=summary)
     return response["published_to"], response["http_status"]
 
 
@@ -145,7 +146,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         try:
             if is_event:
                 handler = SendToExtensionsHandler(extension, default_url=args.publish_url)
-                published_to, status = _publish_event(handler, data, context_data)
+                published_to, status = _publish_event(
+                    handler, data, context_data, summary.to_dict()
+                )
             else:
                 published_to = args.publish_url
                 status = EvidencePublisher(published_to).publish(summary).get("http_status")

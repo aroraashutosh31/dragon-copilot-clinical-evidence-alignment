@@ -104,7 +104,8 @@ response = handle_send_to_extensions({
 ```
 
 The event's `app_url` is only honoured when it points at a trusted host
-(`ALLOWED_PUBLISH_HOSTS`), so a crafted event cannot redirect patient data elsewhere.
+(`clinical_evidence.ALLOWED_PUBLISH_HOSTS`), so a crafted event cannot redirect patient
+data elsewhere.
 
 Such an event can be replayed locally — publishing is implied, no `--publish` needed:
 

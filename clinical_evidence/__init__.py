@@ -14,12 +14,14 @@ from .models import (
 )
 from .publisher import DEFAULT_PUBLISH_URL, EvidencePublisher, PublishError
 from .trigger import (
+    ALLOWED_PUBLISH_HOSTS,
     SEND_TO_EXTENSIONS_ACTION,
     SendToExtensionsHandler,
     handle_send_to_extensions,
 )
 
 __all__ = [
+    "ALLOWED_PUBLISH_HOSTS",
     "DEFAULT_PUBLISH_URL",
     "SEND_TO_EXTENSIONS_ACTION",
     "Allergy",

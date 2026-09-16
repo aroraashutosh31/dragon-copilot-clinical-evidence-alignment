@@ -131,3 +131,20 @@ def test_app_url_without_a_host_is_refused(handler, event):
     event["app_url"] = "https:///app/asharora-hathct"
     with pytest.raises(ValueError, match="no host"):
         handler.handle(event)
+
+
+def test_untrusted_default_url_is_refused_at_construction():
+    with pytest.raises(ValueError, match="untrusted host"):
+        SendToExtensionsHandler(default_url="https://attacker.example/collect")
+
+
+def test_precomputed_summary_is_published_without_recomputing(handler, event):
+    class _Boom(ClinicalEvidenceExtension):
+        def handle_request(self, payload):  # pragma: no cover - must not run
+            raise AssertionError("summary should not be recomputed")
+
+    handler.extension = _Boom()
+    response = handler.handle(event, summary={"patient_id": "p9", "evidence": []})
+
+    assert response["summary"] == {"patient_id": "p9", "evidence": []}
+    assert _RecordingPublisher.calls[0][1] == {"patient_id": "p9", "evidence": []}

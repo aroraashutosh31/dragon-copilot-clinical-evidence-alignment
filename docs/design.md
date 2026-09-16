@@ -148,9 +148,11 @@ correlate the response with the click.
 
 The event arrives from outside this process, so its `app_url` is only accepted when its
 host is in `ALLOWED_PUBLISH_HOSTS` (derived from `DEFAULT_PUBLISH_URL`); otherwise a
-crafted event could redirect patient data to an arbitrary endpoint. An absent `app_url`
-falls back to the default target rather than failing, keeping the click working when the
-application omits it.
+crafted event could redirect patient data to an arbitrary endpoint. The handler's
+configured `default_url` is checked the same way, so no configuration path can reach an
+unexpected destination either. An absent `app_url` falls back to the default target rather
+than failing, keeping the click working when the application omits it. The event must also
+declare its `action` explicitly — patient data is never transmitted on an assumed action.
 
 ## 8. Interfaces
 

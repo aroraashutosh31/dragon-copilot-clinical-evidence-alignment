@@ -25,13 +25,14 @@ to an arbitrary endpoint.
 from __future__ import annotations
 
 import urllib.parse
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping, Protocol
 
 from .extension import ClinicalEvidenceExtension
 from .publisher import DEFAULT_PUBLISH_URL, EvidencePublisher
 
 __all__ = [
     "ALLOWED_PUBLISH_HOSTS",
+    "PublisherLike",
     "SEND_TO_EXTENSIONS_ACTION",
     "SendToExtensionsHandler",
     "handle_send_to_extensions",
@@ -44,6 +45,13 @@ SEND_TO_EXTENSIONS_ACTION = "send_to_extensions"
 ALLOWED_PUBLISH_HOSTS = frozenset({urllib.parse.urlparse(DEFAULT_PUBLISH_URL).hostname or ""})
 
 
+class PublisherLike(Protocol):
+    """The publishing contract required by :class:`SendToExtensionsHandler`."""
+
+    def publish(self, summary: Any) -> Mapping[str, Any]:
+        ...  # pragma: no cover - structural type
+
+
 class SendToExtensionsHandler:
     """Turn a "Send to extensions" event into a published evidence summary."""
 
@@ -52,18 +60,30 @@ class SendToExtensionsHandler:
         extension: ClinicalEvidenceExtension | None = None,
         *,
         default_url: str = DEFAULT_PUBLISH_URL,
-        publisher_factory: Any = None,
+        publisher_factory: Callable[[str], PublisherLike] | None = None,
         allowed_hosts: frozenset[str] = ALLOWED_PUBLISH_HOSTS,
     ) -> None:
-        """``publisher_factory`` defaults to :class:`EvidencePublisher`."""
+        """Configure the handler.
+
+        ``publisher_factory`` defaults to :class:`EvidencePublisher`, resolved when
+        an event is handled so hosts can substitute their own transport.
+        ``default_url`` is checked against ``allowed_hosts`` just like an
+        event-supplied URL, so no configuration path can send patient data to an
+        unexpected destination.
+        """
 
         self.extension = extension or ClinicalEvidenceExtension()
-        self.default_url = default_url
         self.publisher_factory = publisher_factory
         self.allowed_hosts = allowed_hosts
+        self.default_url = self._check_host(default_url)
 
-    def handle(self, event: Mapping[str, Any]) -> dict[str, Any]:
+    def handle(
+        self, event: Mapping[str, Any], *, summary: Mapping[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Validate ``event``, publish the summary and return the outcome.
+
+        Pass ``summary`` to reuse a summary already computed for this event and
+        avoid aligning the same record twice.
 
         The event must declare its ``action`` explicitly; patient data is never
         transmitted on the basis of an assumed action.
@@ -81,15 +101,15 @@ class SendToExtensionsHandler:
             )
 
         url = self.resolve_url(event.get("app_url"))
-        summary = self.extension.handle_request(event)
+        payload = dict(summary) if summary is not None else self.extension.handle_request(event)
         factory = self.publisher_factory or EvidencePublisher
-        result = factory(url).publish(summary)
+        result = factory(url).publish(payload)
 
         response: dict[str, Any] = {
             "action": SEND_TO_EXTENSIONS_ACTION,
             "published_to": url,
             "http_status": result.get("http_status"),
-            "summary": summary,
+            "summary": payload,
         }
         request_id = event.get("request_id")
         if request_id is not None:
@@ -103,14 +123,17 @@ class SendToExtensionsHandler:
             return self.default_url
         if not isinstance(app_url, str):
             raise ValueError("'app_url' must be a string when provided")
-        host = urllib.parse.urlparse(app_url).hostname
+        return self._check_host(app_url)
+
+    def _check_host(self, url: str) -> str:
+        host = urllib.parse.urlparse(url).hostname
         if not host:
-            raise ValueError(f"'app_url' has no host: {app_url!r}")
+            raise ValueError(f"Publish URL has no host: {url!r}")
         if host not in self.allowed_hosts:
             raise ValueError(
-                f"Refusing to publish patient evidence to untrusted host {host!r}: {app_url}"
+                f"Refusing to publish patient evidence to untrusted host {host!r}: {url}"
             )
-        return app_url
+        return url
 
 
 def handle_send_to_extensions(
